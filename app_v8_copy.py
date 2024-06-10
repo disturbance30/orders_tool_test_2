@@ -421,7 +421,7 @@ if st.session_state.login_auth:
             with container_poliseis:
 
             
-                filtered_df_html = filtered_df.iloc[:, 3:7]
+                filtered_df_html = filtered_df.iloc[:, 3:7].drop_duplicates()
                 # filtered_df_html = filtered_df_html.style.set_properties(**{'font-size': '14pt', 'font-family': 'Calibri'})
 
                 filtered_df_html_2 = filtered_df_html.to_html(index=False )  #CREATE html TABLE FOR SALES DATA
