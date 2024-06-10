@@ -60,7 +60,7 @@ if not st.session_state.login_auth:
 
 
     with col2:
-        st.image("logo.png")
+        st.image("logo_lora.png")
         add_vertical_space(2)
         loggin_container =  stylable_container(
                             key="container_with_border",
