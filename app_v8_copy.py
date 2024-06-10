@@ -20,7 +20,6 @@ from add_rows_for_stores_missing import add_rows_stores
 from streamlit_extras.add_vertical_space import add_vertical_space  
 from streamlit_extras.metric_cards import style_metric_cards 
 from streamlit_extras.stylable_container import stylable_container
-from st_aggrid import AgGrid
 
 # streamlit dynamic filters (custom class)
 from dynamic_filters_copy import DynamicFilters_custom
@@ -525,6 +524,6 @@ if st.session_state.get_data_clicked or st.session_state.data_uploaded:
                     worksheet_decisions_to_download = spreadsheet.worksheet("Sheet2").get_all_records()
                     df_decisions = pd.DataFrame(worksheet_decisions_to_download).iloc[1:, [0, 1, 2, -1]]
                     st.markdown(f' 🔎 {len(df_decisions)} αποφάσεις')
-                    AgGrid(df_decisions)
-                    # st.data_editor(df_decisions)
+                    st.dataframe(df_decisions)
+
 
