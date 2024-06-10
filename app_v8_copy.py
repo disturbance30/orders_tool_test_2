@@ -42,7 +42,14 @@ if 'row_index' not in st.session_state:
 ###########
 ###########
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-render_file = "/etc/secrets/service_access" 
+
+st.cache_data(show_spinner=False)
+def get_render_fle():
+    render_file = "/etc/secrets/service_access" 
+    return render_file
+
+
+render_file = get_render_fle() 
 creds = ServiceAccountCredentials.from_json_keyfile_name(render_file, scope)
 
 # Function to authorize and get the client, cached to avoid re-authorizing unnecessarily
