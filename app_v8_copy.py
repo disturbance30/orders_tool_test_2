@@ -43,6 +43,8 @@ if 'row_index' not in st.session_state:
 ###########
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 
+
+# Function to get the path to the JSON 
 st.cache_data(show_spinner=False)
 def get_render_fle():
     render_file = "/etc/secrets/service_access" 
@@ -408,7 +410,7 @@ if st.session_state.get_data_clicked or st.session_state.data_uploaded:
 
             #funtion for replacement suggestion
             def calculate_replacement(df: pd.DataFrame) -> float:
-                replace = (df['store_sales'] - df['store_stock']).clip(lower=0)
+                replace = df['store_sales'].apply(lambda x: 0 if x < 0 else x)
                 antikatastasi_value = replace.sum() - df['projected_balance'].mean()
                 antikatastasi_value = 0 if antikatastasi_value < 0 else antikatastasi_value
 
@@ -457,7 +459,7 @@ if st.session_state.get_data_clicked or st.session_state.data_uploaded:
 
             with st.expander("Ανα κατάστημα"):
                 tab1, tab2, tab3= st.tabs(["Αντικατάσταση", "Επιθετική 30%", 'Επιθετική 50%'])
-                replace = (filtered_df['store_sales'] - filtered_df['store_stock']).clip(lower=0)
+                replace = filtered_df['store_sales'].apply(lambda x: 0 if x < 0 else x)
 
                 with tab1:
                     with st.form(key='my_form', border=False):
