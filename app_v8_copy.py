@@ -125,7 +125,10 @@ if not st.session_state.get_data_clicked and not st.session_state.data_uploaded:
                         .pipe(left_join_dna, df_master)
                         .pipe(replace_null_with_other_string)
                         .drop(columns=['PARTNUMBER', 'ΧΡΩΜΑΤΑ', 'ΜΕΓΕΘΗ'])
-                        .fillna(0))
+                        .fillna(0)
+                        .astype({'store': str})
+                        .query('store != "0"')
+                        )
 
             
             # Prepare data for upload
