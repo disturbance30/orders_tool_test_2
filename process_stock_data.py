@@ -1,7 +1,14 @@
 import streamlit as st
 
-def skip_rows(df):
-    df = df.iloc[1:]
+
+
+
+def set_header(df):
+    for i in range(5):
+        if df.iloc[i, 0] == 'Είδος/PartNumber':
+            df.columns = df.iloc[i]
+            df = df.iloc[i+1:]
+            break
     return df
 
 
@@ -18,18 +25,26 @@ def replace_nan_with_partnumber(df):
 @st.cache_data
 def process_stock(df):
 
+    rename_dict = {
+        'Είδος/PartNumber': 'partnumber',
+        'ΧΡΩΜΑ': 'color',
+        'ΜΕΓΕΘΟΣ': 'size',
+        'Αποθ/Εισαγωγές': 'wh_imports',
+        'Αποθ/Εξαγωγές': 'wh_exports',
+        'Αποθ/Υπόλοιπο': 'wh_stock',
+        'ΕκκρΠαραγγ/Προμ.Ανεκτ.': 'outstanding_orders_supliers',
+        'ΕκκρΠαραγγ/Πελ.Ανεκτ.': 'outstanding_orders_customers',
+        'Προβλ.Υπολ.': 'projected_balance'
+    }
+
+    columns_to_keep = list(rename_dict.values())
+
     df = (df 
+            .pipe(set_header)
             .pipe(remove_rows_with_totals)
             .pipe(replace_nan_with_partnumber)       
-            .rename(columns = {'Είδος/PartNumber': 'partnumber',  # create dictionary to rename columns
-                            'ΧΡΩΜΑ': 'color',
-                                'ΜΕΓΕΘΟΣ': 'size', 
-                            'Αποθ/Εισαγωγές': 'wh_imports', 
-                            'Αποθ/Εξαγωγές': 'wh_exports', 
-                            'Αποθ/Υπόλοιπο': 'wh_stock',
-                            'ΕκκρΠαραγγ/Προμ.Ανεκτ.': 'outstanding_orders_supliers',
-                            'ΕκκρΠαραγγ/Πελ.Ανεκτ.': 'outstanding_orders_customers',
-                            'Προβλ.Υπολ.': 'projected_balance'})
+            .rename(columns = rename_dict)
+            .loc[:, columns_to_keep]
             .fillna(0)
             .reset_index(drop=True) 
             )

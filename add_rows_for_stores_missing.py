@@ -2,40 +2,27 @@ import streamlit as st
 
 @st.cache_data(show_spinner=False)
 def add_rows_stores(df):
-        # List of unique stores required for each combination
     import pandas as pd
-    required_stores = ['AM.VINTAGE', 'ATTICA', 'GOLDEN', 'ΓΛΥΦΑΔΑΣ', 'ΨΥΧΙΚΟΥ']
+
+    # List of unique stores required for each combination
+    required_stores = df['Υποκατάστημα'].dropna().unique()
+    required_stores_df = pd.DataFrame(required_stores, columns=['Υποκατάστημα'])
 
     # Identifying all unique combinations of partnumber, color, size
     unique_combos = df[['partnumber', 'color', 'size']].drop_duplicates()
 
-    # Placeholder DataFrame to collect results
-    new_rows = []
+    # Creating a Cartesian product of unique combinations and required stores
+    combo_stores_df = unique_combos.assign(key=1).merge(required_stores_df.assign(key=1), on='key').drop('key', axis=1)
 
-    # Iterate over each unique combination
-    for _, combo in unique_combos.iterrows():
-        # Filter df for rows matching the current combination
-        subset = df[(df['partnumber'] == combo['partnumber']) & (df['color'] == combo['color']) & (df['size'] == combo['size'])]
-        # Check if all required stores are present
-        present_stores = subset['store'].unique()
-        missing_stores = set(required_stores) - set(present_stores)
-        # If missing, use values from the existing rows of the same combo
-        if missing_stores:
-            template_row = subset.iloc[0]
-        # Append missing rows
-        for store in missing_stores:
-            new_row = template_row.copy()
-            new_row.update({
-                'store': store,
-                'returns': 0,
-                'store_sales': 0,
-                'store_stock': 0,
-            })
-            new_rows.append(new_row)
+    # Merging this with the original dataframe to find the missing rows
+    merged_df = combo_stores_df.merge(df, on=['partnumber', 'color', 'size', 'Υποκατάστημα'], how='left')
 
-    # Convert list of dicts to DataFrame and append to original df
-    missing_df = pd.DataFrame(new_rows)
-    df = pd.concat([df, missing_df], ignore_index=True).sort_values(by=['partnumber', 'color', 'size', 'store']).reset_index(drop=True).fillna(0)
+    # Filling missing values in 'Επιστοφές', 'Πωλήσεις', and 'Απόθεμα' columns
+    merged_df['Επιστοφές'].fillna(0, inplace=True)
+    merged_df['Πωλήσεις'].fillna(0, inplace=True)
+    merged_df['Απόθεμα'].fillna(0, inplace=True)
 
+    # Sorting and resetting index
+    df = merged_df.sort_values(by=['partnumber', 'color', 'size', 'Υποκατάστημα']).reset_index(drop=True)
 
     return df

@@ -1,5 +1,4 @@
-# Standard library imports
-from io import BytesIO  
+# Standard library imports 
 import os
 
 # Third-party imports
@@ -78,7 +77,7 @@ if not st.session_state.login_auth:
                 if submit_button_1:
                     logged_in_success()
                     if st.session_state.login_auth:
-                        st.experimental_rerun()
+                        st.rerun()
 
 if st.session_state.login_auth:
 
@@ -125,9 +124,6 @@ if st.session_state.login_auth:
     ###########
 
 
-
-
-
     # initialize session state variables
     if 'get_data_clicked' not in st.session_state:
         st.session_state['get_data_clicked'] = False
@@ -148,52 +144,63 @@ if st.session_state.login_auth:
     ###########
     # UI for uploading files and fetching data
     if not st.session_state.get_data_clicked and not st.session_state.data_uploaded:
-        sales = st.file_uploader("Upload Sales", type=['xlsx', 'xls'])
-        stock = st.file_uploader("Upload Stock", type=['xlsx', 'xls'])
-        master = st.file_uploader("Upload Master", type=['xlsx', 'xls'])
-        # master file
-        get_data_button = st.button("Get Data", on_click=get_data)
 
-        if sales and stock and master:
-                
-                df_sales = pd.read_excel(sales, skiprows=3)
-                df_stock = pd.read_excel(stock, skiprows=1)
-                df_master = pd.read_excel(master)
+            st.subheader("📂 Ανέβασε τα αρχεία σου")
+            add_vertical_space(3)
+            sales = st.file_uploader("Upload Sales", type=['xlsx', 'xls'])
+            stock = st.file_uploader("Upload Stock", type=['xlsx', 'xls'])
+            master = st.file_uploader("Upload Master", type=['xlsx', 'xls'])
+            # master file
+            add_vertical_space(5)
+            get_data_button = st.button("Συνέχεια προηγούμενης δουλειάς 🔄", on_click=get_data, help="Κάντε κλικ για να πάρετε τα δεδομένα σας")
 
-                df_salesp = process_sales(df_sales)
-                df_stock_pr = process_stock(df_stock)
-                df_master = process_master_df(df_master)
+            if sales and stock and master:
+                    
 
+                    
+                    df_sales = pd.read_excel(sales)
+                    df_stock = pd.read_excel(stock)
+                    df_master = pd.read_excel(master)
 
-
-                df_merged = merge_sales_stock(df_salesp, df_stock_pr)
-
-                df_merged = (df_merged
-                            .pipe(add_rows_stores)
-                            .replace([np.inf, -np.inf], np.nan)
-                            .pipe(left_join_dna, df_master)
-                            .pipe(replace_null_with_other_string)
-                            .drop(columns=['PARTNUMBER', 'ΧΡΩΜΑΤΑ', 'ΜΕΓΕΘΗ'])
-                            .fillna(0)
-                            .astype({'store': str})
-                            .query('store != "0"')
-                            )
-
-                
-                # Prepare data for upload
-                data_to_upload = [df_merged.columns.values.tolist()] + df_merged.values.tolist()
-                # Upload data
-                worksheet = spreadsheet.worksheet("Sheet1")
-                worksheet.update('A1', data_to_upload)
-                spreadsheet.worksheet("Sheet2").clear()
-                headers_for_sheet2 = ['partnumber', 'color', 'size', 'AM.VINTAGE', 'ATTICA', 'GOLDEN', 'ΓΛΥΦΑΔΑΣ', 'ΨΥΧΙΚΟΥ', 'ΑΠΟΘΗΚΗ', 'ΣΥΝΟΛΟ']
-                values_for_sheet2 = [['Test, not for use', 'Red', 'L', 10, 20, 30, 40, 50, 60, 70]]
-                data_to_upload_in_sheet2 = [headers_for_sheet2] + values_for_sheet2
-                worksheet_decisions = spreadsheet.worksheet("Sheet2")
-                worksheet_decisions.update('A1' ,data_to_upload_in_sheet2)
+                    df_salesp = process_sales(df_sales)
+                    df_stock_pr = process_stock(df_stock)
+                    df_master = process_master_df(df_master)
 
 
-                st.session_state.data_uploaded = True
+
+                    df_merged = merge_sales_stock(df_salesp, df_stock_pr)
+
+                    df_merged = (df_merged
+                                .pipe(add_rows_stores)
+                                .replace([np.inf, -np.inf], np.nan)
+                                .pipe(left_join_dna, df_master)
+                                .pipe(replace_null_with_other_string)
+                                .drop(columns=['PARTNUMBER', 'ΧΡΩΜΑΤΑ', 'ΜΕΓΕΘΗ'])
+                                .fillna(0)
+                                .astype({'Υποκατάστημα': str})
+                                .query('Υποκατάστημα != "0"')
+                                )
+
+                    
+                    # Prepare data for upload
+                    data_to_upload = [df_merged.columns.values.tolist()] + df_merged.values.tolist()
+                    # Upload data
+                    worksheet = spreadsheet.worksheet("Sheet1")
+                    worksheet.update('A1', data_to_upload)
+                    spreadsheet.worksheet("Sheet2").clear()
+                    unique_stores = df_merged['Υποκατάστημα'].dropna().unique().tolist()
+                    headers_for_sheet2 = ['partnumber', 'color', 'size']
+                    headers_for_sheet2.extend(unique_stores)
+                    headers_for_sheet2.append('ΑΠΟΘΗΚΗ')
+                    headers_for_sheet2.append('ΣΥΝΟΛΟ')
+                    lst_template = [i for i in range(len(headers_for_sheet2))]
+                    values_for_sheet2 = [lst_template]
+                    data_to_upload_in_sheet2 = [headers_for_sheet2] + values_for_sheet2
+                    worksheet_decisions = spreadsheet.worksheet("Sheet2")
+                    worksheet_decisions.update('A1' ,data_to_upload_in_sheet2)
+
+
+                    st.session_state.data_uploaded = True
 
     ###########
     ###########
@@ -213,22 +220,14 @@ if st.session_state.login_auth:
     ###########
 
     if st.session_state.get_data_clicked or st.session_state.data_uploaded:
+
         sheet1_data = get_data_from_google_sheets('Sheet1')
         sheet2_data = get_data_from_google_sheets('Sheet2')
         fetched_data = pd.DataFrame(sheet1_data)
         decisions_data = pd.DataFrame(sheet2_data)
         fetched_data = pd.merge(fetched_data, decisions_data[['partnumber', 'color', 'size', 'ΣΥΝΟΛΟ']], on=['partnumber', 'color', 'size'], how='left')
-        fetched_data.fillna(50000, inplace=True)
+        fetched_data['ΣΥΝΟΛΟ'].fillna(50000, inplace=True)
 
-
-        # Get unique combinations of partnumber, color, and size
-
-        # @st.cache_data(show_spinner=False)
-        # def get_unique_combos(df: pd.DataFrame) -> pd.DataFrame:
-        #     df = (df[['partnumber', 'color', 'size']]
-        #                 .drop_duplicates()
-        #                 .reset_index(drop=True))
-        #     return df
 
         @st.cache_data(show_spinner=False)
         def get_unique_combos(df):
@@ -243,15 +242,17 @@ if st.session_state.login_auth:
                     'ΣΥΝΘΕΣΗ': 'first', 
                     'BRAND': 'first', 
                     'SEX': 'first',
-                    'store_sales': 'sum'})
+                    'Πωλήσεις': 'sum',
+                    'ΣΥΝΟΛΟ': 'first'})
                 .reset_index()  
                 .assign(SKU=lambda x: x['partnumber'].astype(str) + ' | ' +
                                     x['color'].astype(str) + ' | ' +
-                                    x['size'].astype(str))
+                                    x['size'].astype(str),
+                        ΑΠΟΦΑΣΗ=lambda x: np.where(x['ΣΥΝΟΛΟ'] == 50000, 'Εκρεμμεί', 'Ολοκληρώθηκε'))
                 .reindex(columns=['partnumber', 'color', 'size', 'BASIC / FASHION', 'ΠΕΡΙΓΡΑΦΗ', 
-                                'ΣΥΝΘΕΣΗ', 'BRAND', 'SEX', 'SKU', 'store_sales'])
+                                'ΣΥΝΘΕΣΗ', 'BRAND', 'SEX', 'SKU', 'Πωλήσεις', 'ΑΠΟΦΑΣΗ'])
                 .astype({col: str for col in cols_to_covert_str})
-                .astype({'store_sales': int})
+                .astype({'Πωλήσεις': int})
             )
 
             return df
@@ -264,6 +265,7 @@ if st.session_state.login_auth:
         
         
         unique_combos = get_unique_combos(fetched_data)
+
 
 
     # FILTERS
@@ -429,8 +431,15 @@ if st.session_state.login_auth:
                 
 
                 st.subheader(" 📊 Πωλήσεις")
+                add_vertical_space(1)
                 # AgGrid(filtered_df_html, height=150, width=50)
                 st.markdown(filtered_df_html_2, unsafe_allow_html=True)
+                add_vertical_space(1)
+                st.write('Συνολικές πωλήσεις: ', filtered_df.iloc[:, 5].sum())
+                sell_through = filtered_df.iloc[:, 5].sum() / (filtered_df.iloc[:, 5].sum() + filtered_df.iloc[:, 6].sum())
+                sell_through = 0 if np.isnan(sell_through) else sell_through
+                st.write(f'Sell through: :green[{sell_through * 100:.0f}%]')
+
                 add_vertical_space(2)
     ###########
     ########### 
@@ -457,7 +466,7 @@ if st.session_state.login_auth:
 
                 #funtion for replacement suggestion
                 def calculate_replacement(df: pd.DataFrame) -> float:
-                    replace = df['store_sales'].apply(lambda x: 0 if x < 0 else x)
+                    replace = df['Πωλήσεις'].apply(lambda x: 0 if x < 0 else x)
                     antikatastasi_value = replace.sum() - df['projected_balance'].mean()
                     antikatastasi_value = 0 if antikatastasi_value < 0 else antikatastasi_value
 
@@ -482,107 +491,129 @@ if st.session_state.login_auth:
                 cols3b.metric(label="Επιθετική 1", value=epithetiki_1, delta = '30%')
                 cols3c.metric(label="Επιθετική 2", value=epithetiki_2, delta = '50%')
 
-
-                #function to create the form for the user to input the quantity
-                def create_form():
-                        magazi1 = st.number_input('AM.VINTAGE', min_value=0, max_value=1000, value=replace.iloc[0])
-                        magazi2 = st.number_input('ATTICA', min_value=0, max_value=1000, value=replace.iloc[1])
-                        magazi3 = st.number_input('GOLDEN', min_value=0, max_value=1000, value=replace.iloc[2])
-                        magazi4 = st.number_input('ΓΛΥΦΑΔΑΣ', min_value=0, max_value=1000, value=replace.iloc[3])
-                        magazi5 = st.number_input('ΨΥΧΙΚΟΥ', min_value=0, max_value=1000, value=replace.iloc[4])
-
-                        return magazi1, magazi2, magazi3, magazi4, magazi5
                 
-                #function to send form data to google sheets
-                def send_data_to_google_sheets_decisions(magazi1, magazi2, magazi3, magazi4, magazi5, apothiki):
-                        
-                        final_value_for_sinolo = (sum([magazi1, magazi2, magazi3, magazi4, magazi5, apothiki]) - filtered_df.iloc[:, 12].mean().astype(int))
-                        final_value_for_sinolo = 0 if final_value_for_sinolo < 0 else final_value_for_sinolo
-                        final_value_for_sinolo = int(final_value_for_sinolo)
-                        data_to_upload_decisions =  [current_combo["partnumber"], current_combo["color"], current_combo["size"], magazi1, magazi2, magazi3, magazi4, magazi5, apothiki, final_value_for_sinolo]
-                        body=data_to_upload_decisions #the values should be a list
-                        worksheet_decisions = spreadsheet.worksheet("Sheet2")
-                        worksheet_decisions.append_row(body) 
+            def create_form():
+                inputs = {}
+                for magazi in filtered_df['Υποκατάστημα'].unique():
+                    magazi_sales = filtered_df.query(f'Υποκατάστημα == "{magazi}"').Πωλήσεις.sum()
+                    magazi_sales = 0 if magazi_sales < 0 else magazi_sales
+                    inputs[magazi] = st.number_input(f'{magazi}', min_value=0, max_value=1000, value=magazi_sales)
+                return inputs
+            
 
-                with st.expander("Ανα κατάστημα"):
+
+            def send_data_to_google_sheets_decisions():
+                    
+                    final_value_for_sinolo = (sum(list(magazi_values.values())) + apothiki) - filtered_df.iloc[:, 12].mean().astype(int)
+                    final_value_for_sinolo = 0 if final_value_for_sinolo < 0 else final_value_for_sinolo
+                    final_value_for_sinolo = int(final_value_for_sinolo)
+                    data_to_upload_decisions =  [current_combo["partnumber"], current_combo["color"], current_combo["size"]]
+                    data_to_upload_decisions.extend(list(magazi_values.values()))
+                    data_to_upload_decisions.append(apothiki)
+                    data_to_upload_decisions.append(final_value_for_sinolo)
+                    body=data_to_upload_decisions 
+                    worksheet_decisions = spreadsheet.worksheet("Sheet2")
+                    worksheet_decisions.append_row(body) 
+            
+            cols = st.columns(2)
+
+            with cols[0]:
+                with st.popover("Ανα κατάστημα", use_container_width=True, help = ' 🏬 Εισάγετε παραγγελίες ανά κατάστημα'):
                     tab1, tab2, tab3= st.tabs(["Αντικατάσταση", "Επιθετική 30%", 'Επιθετική 50%'])
-                    replace = filtered_df['store_sales'].apply(lambda x: 0 if x < 0 else x)
+                    replace = filtered_df['Πωλήσεις'].apply(lambda x: 0 if x < 0 else x)
 
                     with tab1:
                         with st.form(key='my_form', border=False):
                             magazi_values = create_form()
                             apothiki = st.number_input('ΑΠΟΘΗΚΗ', min_value=0, max_value=1000, value= 0) 
-                            submit_button_1 = st.form_submit_button(label='Αποδοχή')
+                            add_vertical_space(1)
+                            submit_button_1 = st.form_submit_button(label='✅ Αποδοχή')
 
                             if submit_button_1:
-                                send_data_to_google_sheets_decisions(*magazi_values, apothiki)
+                                with st.spinner('Αποθήκευση...'):
+                                    try:
+                                        # Call the function to send data to Google Sheets
+                                        send_data_to_google_sheets_decisions()
+                                        # Once the function completes, show the success message
+                                        st.success("Η επιλογή σας αποθηκεύτηκε επιτυχώς!")
+                                    except Exception as e:
+                                        st.error(f"An error occurred: {e}")
 
 
                     with tab2:
                         with st.form(key='my_form1', border=False):
                             magazi_values = create_form()
                             apothiki = st.number_input('ΑΠΟΘΗΚΗ', min_value=0, max_value=1000, value= (int(epithetiki_1) - int(antikatastasi)))
-                            submit_button_2 = st.form_submit_button(label='Αποδοχή')
+                            add_vertical_space(1)
+                            submit_button_2 = st.form_submit_button(label='✅ Αποδοχή')
 
                             if submit_button_2:
-                                send_data_to_google_sheets_decisions(*magazi_values, apothiki)
+                                with st.spinner('Αποθήκευση...'):
+                                    try:
+                                        # Call the function to send data to Google Sheets
+                                        send_data_to_google_sheets_decisions()
+                                        # Once the function completes, show the success message
+                                        st.success("Η επιλογή σας αποθηκεύτηκε επιτυχώς!")
+                                    except Exception as e:
+                                        st.error(f"An error occurred: {e}")
 
                     with tab3:
                         with st.form(key='my_form2', border=False):
                             magazi_values= create_form()
                             apothiki = st.number_input('ΑΠΟΘΗΚΗ', min_value=0, max_value=1000, value= (int(epithetiki_2) - int(antikatastasi)))
-                            submit_button_3 = st.form_submit_button(label='Αποδοχή')
+                            add_vertical_space(1)
+                            submit_button_3 = st.form_submit_button(label='✅ Αποδοχή')
                             
                             if submit_button_3:
-                                send_data_to_google_sheets_decisions(*magazi_values, apothiki)
+                                with st.spinner('Αποθήκευση...'):
+                                    try:
+                                        # Call the function to send data to Google Sheets
+                                        send_data_to_google_sheets_decisions()
+                                        # Once the function completes, show the success message
+                                        st.success("Η επιλογή σας αποθηκεύτηκε επιτυχώς!")
+                                    except Exception as e:
+                                        st.error(f"An error occurred: {e}")
 
 
-
-                with st.expander("Συνολική Παραγγελία"):
+            with cols[1]:
+                with st.popover("Συνολική Παραγγελία", use_container_width=True, help = ' 🛒 Εισάγετε την συνολική παραγγελία'):
                     with st.form(key='custom_order', border=False):
                         custom_order = st.number_input('Ποσότητα', min_value=0, max_value=10000, value=0)
-                        submit_button_custom_total_order = st.form_submit_button(label='Αποδοχή')
+                        add_vertical_space(1)
+                        submit_button_custom_total_order = st.form_submit_button(label='✅ Αποδοχή')
+
                         if submit_button_custom_total_order:
-                            data_to_upload_decisions =  [current_combo["partnumber"], current_combo["color"], current_combo["size"], 'ελειπές', 'ελειπές', 'ελειπές', 'ελειπές', 'ελειπές', 'ελειπές', custom_order]
-                            body_for_custom_order=data_to_upload_decisions
-                            worksheet_decisions = spreadsheet.worksheet("Sheet2")
-                            worksheet_decisions.append_row(body_for_custom_order)
-
-            col1, col2, col3, col4 = col_wh3.columns([1, 1, 1, 1])
-            with col4:
-                add_vertical_space(2)
-                download_button = st.button('Excel αποφάσεις')
-
-                if download_button:
-                    worksheet_decisions_to_download = spreadsheet.worksheet("Sheet2").get_all_records()
-                    df_decisions = pd.DataFrame(worksheet_decisions_to_download).iloc[1:]
-
-                    # Convert DataFrame to Excel in memory
-                    output = BytesIO()
-                    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                        df_decisions.to_excel(writer, sheet_name='Sheet1', index=False)
-                        writer.save()
-                        excel_data = output.getvalue()
-
-                    # Create a download button for the Excel file
-                    st.download_button(
-                        label="🔽 Λήψη αρχείου",
-                        data=excel_data,
-                        file_name="decisions.xlsx",
-                        mime="application/vnd.ms-excel"
-                    )
-
-                
-                add_vertical_space(1)
-                episkopisi = st.button('Επικόπηση')
-                
-                if episkopisi:
-                    col1, col2, col3 = col_wh3.columns([1, 1, 3])
-                    with col3:
-
-                        worksheet_decisions_to_download = spreadsheet.worksheet("Sheet2").get_all_records()
-                        df_decisions = pd.DataFrame(worksheet_decisions_to_download).iloc[1:, [0, 1, 2, -1]]
-                        st.markdown(f' 🔎 {len(df_decisions)} αποφάσεις')
-                        st.dataframe(df_decisions)
+                            with st.spinner('Αποθήκευση...'):
+                                try:
+                                    data_to_upload_decisions =  [current_combo["partnumber"], current_combo["color"], current_combo["size"], 'ελειπές', 'ελειπές', 'ελειπές', 'ελειπές', 'ελειπές', 'ελειπές', custom_order]
+                                    body_for_custom_order=data_to_upload_decisions
+                                    worksheet_decisions = spreadsheet.worksheet("Sheet2")
+                                    worksheet_decisions.append_row(body_for_custom_order)
+                                    st.success("Η επιλογή σας αποθηκεύτηκε επιτυχώς!")
+                                except Exception as e:
+                                    st.error(f"An error occurred: {e}")
 
 
+                col1, col2, col3, col4 = col_wh3.columns([1, 1, 8, 1])
+                with col4:
+                    button_episkopisi = st.button('🔎', help = ' :green[Επισκόπηση αποφάσεων]')
+                    # refresh_button = st.button('🔄')
+                    # if refresh_button:
+                    #     sheet2_data = spreadsheet.worksheet("Sheet2").get_all_records()
+                    #     decisions_data = pd.DataFrame(sheet2_data)
+                    #     fetched_data = pd.merge(fetched_data, decisions_data[['partnumber', 'color', 'size', 'ΣΥΝΟΛΟ']], on=['partnumber', 'color', 'size'], how='left')
+                    #     fetched_data['ΣΥΝΟΛΟ'].fillna(50000, inplace=True)
+
+            if button_episkopisi:
+                worksheet_decisions_to_download = spreadsheet.worksheet("Sheet2").get_all_records()
+                df_decisions = pd.DataFrame(worksheet_decisions_to_download).iloc[1:]
+                st.subheader(f'{len(df_decisions)} αποφάσεις')
+                st.dataframe(df_decisions, hide_index=True)
+
+
+
+
+
+
+
+ 

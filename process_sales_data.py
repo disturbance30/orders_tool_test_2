@@ -15,19 +15,31 @@ def replace_nan_with_partnumber(df):
     df.iloc[:, 2] = df.iloc[:, 2].fillna(method='ffill')
     return df
 
-@st.cache_data
+def set_header(df):
+    for i in range(5):
+        if df.iloc[i, 0] == 'PartNumber':
+            df.columns = df.iloc[i]
+            df = df.iloc[i+1:]
+            break
+    return df
+
+
+def rename_columns(df):
+    df.columns = ['partnumber', 'color', 'size', 'Υποκατάστημα', 'Επιστοφές', 'Πωλήσεις', 'Απόθεμα']
+    return df
+
 def process_sales(df):
         
-        df = (df           
+        
+        columns_to_keep = ['partnumber', 'color', 'size', 'Υποκατάστημα', 'Επιστοφές', 'Πωλήσεις', 'Απόθεμα']
+
+
+        df = (df    
+        .pipe(set_header)       
         .pipe(remove_rows_with_totals)
         .pipe(replace_nan_with_partnumber)
-        .rename(columns = {'PartNumber': 'partnumber', 
-                           'ΧΡΩΜΑ': 'color', 
-                           'ΜΕΓΕΘΟΣ': 'size', 
-                           'Υποκ/μα': 'store', 
-                           'Ποσ': 'returns',
-                           'Ποσ.1': 'store_sales',
-                           'Ποσ.2': 'store_stock'})
+        .pipe(rename_columns)
+        .loc[:, columns_to_keep]
         .fillna(0)
         .reset_index(drop=True) 
         )
