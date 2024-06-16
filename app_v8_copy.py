@@ -1,4 +1,4 @@
-# Standard library imports 
+ # Standard library imports 
 import os
 
 # Third-party imports
@@ -47,6 +47,7 @@ def logged_in_success():
         st.session_state.login_auth = True
     else:
         st.session_state.login_auth = False
+        st.write(':red[Λάθος στοιχεία σύνδεσης]')
 
 
 
@@ -193,8 +194,10 @@ if st.session_state.login_auth:
                     headers_for_sheet2.extend(unique_stores)
                     headers_for_sheet2.append('ΑΠΟΘΗΚΗ')
                     headers_for_sheet2.append('ΣΥΝΟΛΟ')
-                    lst_template = [i for i in range(len(headers_for_sheet2))]
-                    values_for_sheet2 = [lst_template]
+                    str_lst_row = ['test', 'test', 'test']
+                    lst_template_values = [i for i in range(len(unique_stores) + 2)]
+                    str_lst_row.extend(lst_template_values)
+                    values_for_sheet2 = [lst_template_values]
                     data_to_upload_in_sheet2 = [headers_for_sheet2] + values_for_sheet2
                     worksheet_decisions = spreadsheet.worksheet("Sheet2")
                     worksheet_decisions.update('A1' ,data_to_upload_in_sheet2)
