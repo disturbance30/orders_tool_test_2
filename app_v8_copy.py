@@ -13,7 +13,9 @@ from process_sales_data import process_sales
 from process_stock_data import process_stock  
 from process_master_file_dna import process_master_df, left_join_dna, replace_null_with_other_string
 from merge_dataframes import merge_sales_stock  
-from add_rows_for_stores_missing import add_rows_stores 
+from add_rows_for_stores_missing import add_rows_stores
+from process_merged_data import generate_full_df
+from prepare_data_gsheets import upload_data_gsheets
 
 # Streamlit extras for enhanced UI components
 from streamlit_extras.add_vertical_space import add_vertical_space  
@@ -157,53 +159,42 @@ if st.session_state.login_auth:
 
             if sales and stock and master:
                     
+                with st.spinner('Φόρτωση και επεξεργασία δεδομένων...'):
+                        
+                    try:
+                        # Read the uploaded files
+                        df_sales = pd.read_excel(sales)
+                        df_stock = pd.read_excel(stock)
+                        df_master = pd.read_excel(master)
+
+                        # Process  data
+                        df_sales_processed = process_sales(df_sales)
+                        df_stock_processed = process_stock(df_stock)
+                        df_master = process_master_df(df_master)
+
+
+                        # Merge sales and stock data
+                        df_merged = merge_sales_stock(df_sales_processed, df_stock_processed)
+                        
+                        # Generate the full dataframe by merging with the master file, handling null values, converting to appropriate types
+                        df_merged = generate_full_df(df_merged, df_master)
+                    
+
 
                     
-                    df_sales = pd.read_excel(sales)
-                    df_stock = pd.read_excel(stock)
-                    df_master = pd.read_excel(master)
-
-                    df_salesp = process_sales(df_sales)
-                    df_stock_pr = process_stock(df_stock)
-                    df_master = process_master_df(df_master)
+                        # prepare and upload data to Google Sheets
+                        upload_data_gsheets(df_merged, spreadsheet)
+                        
 
 
 
-                    df_merged = merge_sales_stock(df_salesp, df_stock_pr)
-
-                    df_merged = (df_merged
-                                .pipe(add_rows_stores)
-                                .replace([np.inf, -np.inf], np.nan)
-                                .pipe(left_join_dna, df_master)
-                                .pipe(replace_null_with_other_string)
-                                .drop(columns=['PARTNUMBER', 'ΧΡΩΜΑΤΑ', 'ΜΕΓΕΘΗ'])
-                                .fillna(0)
-                                .astype({'Υποκατάστημα': str})
-                                .query('Υποκατάστημα != "0"')
-                                )
-
+                        st.session_state.data_uploaded = True
+                        
+                    except Exception as e:
+                        st.error(f"An error occurred: {e}")
+                        st.session_state.data_uploaded = False
                     
-                    # Prepare data for upload
-                    data_to_upload = [df_merged.columns.values.tolist()] + df_merged.values.tolist()
-                    # Upload data
-                    worksheet = spreadsheet.worksheet("Sheet1")
-                    worksheet.update('A1', data_to_upload)
-                    spreadsheet.worksheet("Sheet2").clear()
-                    unique_stores = df_merged['Υποκατάστημα'].dropna().unique().tolist()
-                    headers_for_sheet2 = ['partnumber', 'color', 'size']
-                    headers_for_sheet2.extend(unique_stores)
-                    headers_for_sheet2.append('ΑΠΟΘΗΚΗ')
-                    headers_for_sheet2.append('ΣΥΝΟΛΟ')
-                    str_lst_row = ['test', 'test', 'test']
-                    lst_template_values = [i for i in range(len(unique_stores) + 2)]
-                    str_lst_row.extend(lst_template_values)
-                    values_for_sheet2 = [str_lst_row]
-                    data_to_upload_in_sheet2 = [headers_for_sheet2] + values_for_sheet2
-                    worksheet_decisions = spreadsheet.worksheet("Sheet2")
-                    worksheet_decisions.update('A1' ,data_to_upload_in_sheet2)
 
-
-                    st.session_state.data_uploaded = True
 
     ###########
     ###########
