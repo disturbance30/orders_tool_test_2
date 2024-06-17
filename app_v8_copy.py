@@ -391,12 +391,12 @@ if st.session_state.login_auth:
                 st.subheader(" 📦 Αποθήκη ")
                 add_vertical_space(1)
                 colm1, colm2, colm3, colm4, colm5, colm6 = st.columns(6)
-                colm1.metric(label=":grey[Εισαγωγές]", value=filtered_df.iloc[:, 7].mean().astype(int))
-                colm2.metric(label=":grey[Εξαγωγές]", value=filtered_df.iloc[:, 8].mean().astype(int))
-                colm3.metric(label=":grey[Π. Προμηθευτές]", value=filtered_df.iloc[:, 10].mean().astype(int))
-                colm4.metric(label=":grey[Π. Πελάτες]", value=filtered_df.iloc[:, 11].mean().astype(int))
-                colm5.metric(label=":grey[Υπόλοιπο]", value=filtered_df.iloc[:, 9].mean().astype(int))
-                colm6.metric(label=":grey[Πρ. Υπόλοιπο]", value=filtered_df.iloc[:, 12].mean().astype(int))
+                colm1.metric(label=":grey[Εισαγωγές]", value=filtered_df.iloc[0].loc['wh_imports'].astype(int))
+                colm2.metric(label=":grey[Εξαγωγές]", value=filtered_df.iloc[0].loc['wh_exports'].astype(int))
+                colm3.metric(label=":grey[Π. Προμηθευτές]", value=filtered_df.iloc[0].loc['outstanding_orders_supliers'].astype(int))
+                colm4.metric(label=":grey[Π. Πελάτες]", value=filtered_df.iloc[0].loc['outstanding_orders_customers'].astype(int))
+                colm5.metric(label=":grey[Υπόλοιπο]", value=filtered_df.iloc[0].loc['wh_stock'].astype(int))
+                colm6.metric(label=":grey[Πρ. Υπόλοιπο]", value=filtered_df.iloc[0].loc['projected_balance'].astype(int))
 
                 add_vertical_space(2)
     ###########
@@ -461,7 +461,7 @@ if st.session_state.login_auth:
                 #funtion for replacement suggestion
                 def calculate_replacement(df: pd.DataFrame) -> float:
                     replace = df['Πωλήσεις'].apply(lambda x: 0 if x < 0 else x)
-                    antikatastasi_value = replace.sum() - df['projected_balance'].mean()
+                    antikatastasi_value = replace.sum() - df.iloc[0].loc['projected_balance']
                     antikatastasi_value = 0 if antikatastasi_value < 0 else antikatastasi_value
 
                     return antikatastasi_value
@@ -498,7 +498,7 @@ if st.session_state.login_auth:
 
             def send_data_to_google_sheets_decisions():
                     
-                    final_value_for_sinolo = (sum(list(magazi_values.values())) + apothiki) - filtered_df.iloc[:, 12].mean().astype(int)
+                    final_value_for_sinolo = (sum(list(magazi_values.values())) + apothiki) - filtered_df.iloc[0, 12].astype(int)
                     final_value_for_sinolo = 0 if final_value_for_sinolo < 0 else final_value_for_sinolo
                     final_value_for_sinolo = int(final_value_for_sinolo)
                     data_to_upload_decisions =  [current_combo["partnumber"], current_combo["color"], current_combo["size"]]
