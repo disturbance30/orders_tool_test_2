@@ -17,7 +17,6 @@ def generate_full_df(df, df_master):
     astype_dict['Υποκατάστημα'] = str
 
     df = (df
-                .pipe(add_rows_stores)
                 .pipe(left_join_dna, df_master)
                 .pipe(replace_null_with_other_string)
                 .drop(columns=['PARTNUMBER', 'ΧΡΩΜΑΤΑ', 'ΜΕΓΕΘΗ'])

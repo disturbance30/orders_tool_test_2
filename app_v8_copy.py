@@ -167,9 +167,9 @@ if st.session_state.login_auth:
                         df_stock = pd.read_excel(stock)
                         df_master = pd.read_excel(master)
 
-                        # Process  data
+                        # Process the data
                         df_sales_processed = process_sales(df_sales)
-                        df_stock_processed = process_stock(df_stock)
+                        df_stock_processed = process_stock(df_stock, df_sales_processed)
                         df_master = process_master_df(df_master)
 
 
